@@ -2,15 +2,20 @@ import pytest
 import pytz
 from datetime import datetime, timedelta
 
-from .models import Customer, CustomerDiscount
+from .models import (
+    Customer,
+    CustomerDiscount,
+    ReplicaCustomer,
+    ReplicaCustomerDiscount
+)
 
 
 @pytest.fixture
 def customer_data():
     return {
-        'cSearchName': 'test',
-        'cName': 'test',
-        'vEmailSender': 'test@gmail.com',
+        'search_name': 'test',
+        'name': 'test',
+        'email_sender': 'test@gmail.com',
     }
 
 
@@ -18,12 +23,13 @@ def customer_data():
 def customer(customer_data):
     return Customer.objects.create(**customer_data)
 
+
 @pytest.fixture
 def customer_discount_data(customer):
     return {
-        'intCustomer_id': customer.pk,
-        'chvDescription': 'test description',
-        'dtmInsertDate': datetime.utcnow().replace(tzinfo=pytz.utc),
+        'customer_id': customer.pk,
+        'description': 'test description',
+        'insert_date': datetime.utcnow().replace(tzinfo=pytz.utc),
     }
 
 
@@ -35,42 +41,54 @@ def customer_discount(customer_discount_data):
 @pytest.mark.django_db
 def test_create_customer(customer_data):
     obj = Customer.objects.create(**customer_data)
-    assert Customer.objects.using('old_default').filter(pk=obj.pk).exists()
-    old_db_obj = Customer.objects.using('old_default').get(pk=obj.pk)
-    assert customer_data.get('cSearchName') == old_db_obj.cSearchName
-    assert customer_data.get('cName') == old_db_obj.cName
-    assert customer_data.get('vEmailSender') == old_db_obj.vEmailSender
+    assert ReplicaCustomer.objects.filter(lCustomer_id=obj.pk).exists()
+    obj = ReplicaCustomer.objects.get(lCustomer_id=obj.pk)
+    assert customer_data.get('search_name') == obj.cSearchName
+    assert customer_data.get('name') == obj.cName
+    assert customer_data.get('email_sender') == obj.vEmailSender
 
 
 @pytest.mark.django_db
 def test_update_customer(customer_data, customer):
-    customer.cSearchName = 'new test'
-    customer.cName = 'new test'
-    customer.vEmailSender = 'new@gmail.com'
+    customer.search_name = 'new test'
+    customer.name = 'new test'
+    customer.email_sender = 'new@gmail.com'
     customer.save()
-    assert Customer.objects.using('old_default').filter(pk=customer.pk).exists()
-    old_db_obj = Customer.objects.using('old_default').get(pk=customer.pk)
-    assert old_db_obj.cSearchName == 'new test' == customer.cSearchName
-    assert old_db_obj.cName == 'new test' == customer.cName
-    assert old_db_obj.vEmailSender == 'new@gmail.com'  == customer.vEmailSender
+    assert ReplicaCustomer.objects.filter(lCustomer_id=customer.pk).exists()
+    obj = ReplicaCustomer.objects.get(pk=customer.pk)
+    assert obj.cSearchName == 'new test' == customer.search_name
+    assert obj.cName == 'new test' == customer.name
+    assert obj.vEmailSender == 'new@gmail.com' == customer.email_sender
 
 
 @pytest.mark.django_db
 def test_create_customer_discount(customer_discount_data):
     obj = CustomerDiscount.objects.create(**customer_discount_data)
-    assert CustomerDiscount.objects.using('old_default').filter(pk=obj.pk).exists()
-    old_db_obj = CustomerDiscount.objects.using('old_default').get(pk=obj.pk)
-    assert customer_discount_data.get('intCustomer_id') == old_db_obj.intCustomer_id
-    assert customer_discount_data.get('chvDescription') == old_db_obj.chvDescription
-    assert customer_discount_data.get('dtmInsertDate') == old_db_obj.dtmInsertDate
+    assert ReplicaCustomerDiscount.objects.filter(
+        intCustomerDiscountId=obj.pk
+    ).exists()
+    obj = ReplicaCustomerDiscount.objects.get(
+        intCustomerDiscountId=obj.pk
+    )
+    assert customer_discount_data.get('customer_id') == obj.intCustomerId
+    assert customer_discount_data.get('description') == obj.chvDescription
+    assert customer_discount_data.get('insert_date') == obj.dtmInsertDate
 
 
 @pytest.mark.django_db
 def test_update_customer_discount(customer_discount):
-    customer_discount.chvDescription = 'new description'
-    customer_discount.dtmInsertDate = datetime.utcnow().replace(tzinfo=pytz.utc) - timedelta(hours=1)
+    now = datetime.utcnow().replace(tzinfo=pytz.utc)
+    customer_discount.description = 'new description'
+    customer_discount.insert_date = now - timedelta(hours=1)
     customer_discount.save()
-    assert CustomerDiscount.objects.using('old_default').filter(pk=customer_discount.pk).exists()
-    old_db_obj = CustomerDiscount.objects.using('old_default').get(pk=customer_discount.pk)
-    assert old_db_obj.chvDescription == customer_discount.chvDescription
-    assert old_db_obj.dtmInsertDate == customer_discount.dtmInsertDate
+    assert ReplicaCustomerDiscount.objects.filter(
+        intCustomerDiscountId=customer_discount.pk
+    ).exists()
+    obj = ReplicaCustomerDiscount.objects.get(
+        intCustomerDiscountId=customer_discount.pk
+    )
+    assert obj.chvDescription == customer_discount.description
+    assert obj.dtmInsertDate == customer_discount.insert_date
+
+
+

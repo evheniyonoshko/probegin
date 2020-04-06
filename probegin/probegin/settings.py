@@ -86,12 +86,12 @@ DATABASES = {
         'HOST': '127.0.0.1',
         'PORT': '5432',
     },
-    'old_default': {
+    'replica': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': os.path.join(BASE_DIR, 'legacy.db.sqlite3'),
+        'TEST_NAME': os.path.join(BASE_DIR, 'test.db.sqlite3'),
     }
 }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/2.2/ref/settings/#auth-password-validators
@@ -130,3 +130,5 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/2.2/howto/static-files/
 
 STATIC_URL = '/static/'
+
+DATABASE_ROUTERS = ['customer.dbrouters.PrimaryReplicaRouter', ]

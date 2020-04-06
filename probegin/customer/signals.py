@@ -1,14 +1,52 @@
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from customer.models import Customer, CustomerDiscount
+from customer.models import (
+    Customer,
+    CustomerDiscount,
+    ReplicaCustomer,
+    ReplicaCustomerDiscount
+)
 
 
 @receiver(post_save, sender=Customer)
-@receiver(post_save, sender=CustomerDiscount)
-def save_or_update_objects_in_old_db(sender, instance, created, using, **kwargs):
+def customer(sender, instance, created, using, **kwargs):
     if using == 'default':
-        if created:
-            instance.save(using='old_default', force_insert=True)
+        model = ReplicaCustomer
+        already_exists = model.objects.filter(
+            lCustomer_id=instance.pk
+        ).exists()
+        if created and not already_exists:
+            model.objects.create(
+                lCustomer_id=instance.pk,
+                cSearchName=instance.search_name,
+                cName=instance.name,
+                vEmailSender=instance.email_sender
+            )
         else:
-            instance.save(using='old_default')
+            model.objects.filter(lCustomer_id=instance.pk).update(
+                cSearchName=instance.search_name,
+                cName=instance.name,
+                vEmailSender=instance.email_sender
+            )
 
+
+@receiver(post_save, sender=CustomerDiscount)
+def customer_discount(sender, instance, created, using, **kwargs):
+    model = ReplicaCustomerDiscount
+    if using == 'default':
+        already_exists = model.objects.filter(
+            intCustomerDiscountId=instance.pk
+        ).exists()
+        if created and not already_exists:
+            model.objects.create(
+                intCustomerDiscountId=instance.pk,
+                intCustomerId=instance.customer_id,
+                chvDescription=instance.description,
+                dtmInsertDate=instance.insert_date
+            )
+        else:
+            model.objects.filter(intCustomerDiscountId=instance.pk).update(
+                intCustomerId=instance.customer_id,
+                chvDescription=instance.description,
+                dtmInsertDate=instance.insert_date
+            )

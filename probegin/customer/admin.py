@@ -10,3 +10,4 @@ class CustomerDiscountAdmin(admin.TabularInline):
 @admin.register(Customer)
 class CustomerAdmin(admin.ModelAdmin):
     inlines = [CustomerDiscountAdmin]
+    list_display = ('id', 'search_name', 'name', 'email_sender', )
